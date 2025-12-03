@@ -401,6 +401,21 @@ io.on("connection", (socket) => {
 		}
 	});
 
+	socket.on("private:reject-call", (payload) => {
+		const { callerId } = payload;
+		const rejectorId = socket.userId;
+		console.log(`❌ Call rejected by ${rejectorId} for caller ${callerId}`);
+		
+		if (rejectorId) {
+			emitToUser(callerId, "private:call-rejected", {
+				rejectorId,
+				reason: "Call declined",
+			});
+		} else {
+			console.error("Cannot reject call: rejectorId not found on socket.");
+		}
+	});
+
 	socket.on("private:offer", (payload) => {
 		const { receiverId, sdp } = payload;
 		const callerId = socket.userId;
