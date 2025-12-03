@@ -1,14 +1,72 @@
 import { Phone, PhoneOff, Video } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const IncomingCallModal = ({ isOpen, caller, callType, onAccept, onReject }) => {
   const [ringingTime, setRingingTime] = useState(0);
+  const audioContextRef = useRef(null);
+  const ringtoneIntervalRef = useRef(null);
+
+  // Play ringtone using Web Audio API
+  const playRingtone = () => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      const context = audioContextRef.current;
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, context.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+      
+      oscillator.start(context.currentTime);
+      oscillator.stop(context.currentTime + 0.5);
+      
+      // Play second tone
+      setTimeout(() => {
+        const oscillator2 = context.createOscillator();
+        const gainNode2 = context.createGain();
+        
+        oscillator2.connect(gainNode2);
+        gainNode2.connect(context.destination);
+        
+        oscillator2.frequency.value = 1000;
+        oscillator2.type = 'sine';
+        
+        gainNode2.gain.setValueAtTime(0.3, context.currentTime);
+        gainNode2.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+        
+        oscillator2.start(context.currentTime);
+        oscillator2.stop(context.currentTime + 0.5);
+      }, 500);
+    } catch (error) {
+      console.error("Error playing ringtone:", error);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) {
       setRingingTime(0);
+      // Stop ringtone
+      if (ringtoneIntervalRef.current) {
+        clearInterval(ringtoneIntervalRef.current);
+        ringtoneIntervalRef.current = null;
+      }
       return;
     }
+
+    // Play ringtone immediately and then every 2 seconds
+    playRingtone();
+    ringtoneIntervalRef.current = setInterval(() => {
+      playRingtone();
+    }, 2000);
 
     const timer = setInterval(() => {
       setRingingTime((prev) => prev + 1);
@@ -22,6 +80,9 @@ const IncomingCallModal = ({ isOpen, caller, callType, onAccept, onReject }) => 
     return () => {
       clearInterval(timer);
       clearTimeout(autoReject);
+      if (ringtoneIntervalRef.current) {
+        clearInterval(ringtoneIntervalRef.current);
+      }
     };
   }, [isOpen, onReject]);
 

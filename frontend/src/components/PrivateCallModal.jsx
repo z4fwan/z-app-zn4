@@ -25,6 +25,7 @@ const PrivateCallModal = ({
   const remoteStreamRef = useRef(null);
   const iceCandidateQueueRef = useRef([]);
   const callTimerRef = useRef(null);
+  const callTimeoutRef = useRef(null);
 
   const createPeerConnection = useCallback(() => {
     const pc = new RTCPeerConnection({
@@ -131,7 +132,15 @@ const PrivateCallModal = ({
     });
 
     setCallStatus("ringing");
-  }, [initializeMedia, createPeerConnection, socket, otherUser, authUser, callType]);
+
+    // Auto-end call if not answered within 30 seconds
+    callTimeoutRef.current = setTimeout(() => {
+      if (callStatus === "ringing" || callStatus === "connecting") {
+        toast.error("Call not answered");
+        endCall();
+      }
+    }, 30000);
+  }, [initializeMedia, createPeerConnection, socket, otherUser, authUser, callType, callStatus, endCall]);
 
   const answerCall = useCallback(async () => {
     const stream = await initializeMedia();
@@ -214,6 +223,12 @@ const PrivateCallModal = ({
   const endCall = useCallback(() => {
     stopCallTimer();
     
+    // Clear timeout
+    if (callTimeoutRef.current) {
+      clearTimeout(callTimeoutRef.current);
+      callTimeoutRef.current = null;
+    }
+    
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => track.stop());
       localStreamRef.current = null;
@@ -246,7 +261,14 @@ const PrivateCallModal = ({
     const handleAnswerEvent = ({ sdp }) => handleAnswer(sdp);
     const handleIceCandidateEvent = ({ candidate }) => handleIceCandidate(candidate);
     const handleCallEnded = () => endCall();
-    const handleCallAccepted = () => setCallStatus("connecting");
+    const handleCallAccepted = () => {
+      setCallStatus("connecting");
+      // Clear timeout when call is accepted
+      if (callTimeoutRef.current) {
+        clearTimeout(callTimeoutRef.current);
+        callTimeoutRef.current = null;
+      }
+    };
 
     socket.on("private:offer", handleOfferEvent);
     socket.on("private:answer", handleAnswerEvent);
@@ -262,6 +284,9 @@ const PrivateCallModal = ({
       socket.off("private:call-accepted", handleCallAccepted);
       
       stopCallTimer();
+      if (callTimeoutRef.current) {
+        clearTimeout(callTimeoutRef.current);
+      }
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
       }
