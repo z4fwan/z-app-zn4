@@ -26,7 +26,30 @@ const PrivateCallModal = ({
   const iceCandidateQueueRef = useRef([]);
   const callTimerRef = useRef(null);
 
+  const endCall = useCallback(() => {
+    stopCallTimer();
+    
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
+    }
+
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+
+    if (socket && otherUser) {
+      socket.emit("private:end-call", { targetUserId: otherUser._id });
+    }
+
+    setCallStatus("ended");
+    if (onCallEnd) onCallEnd();
+    setTimeout(() => onClose(), 500);
+  }, [socket, otherUser, onClose, onCallEnd]);
+
   const createPeerConnection = useCallback(() => {
+    console.log("Creating peer connection");
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
@@ -37,6 +60,7 @@ const PrivateCallModal = ({
 
     pc.onicecandidate = (e) => {
       if (e.candidate && socket) {
+        console.log("Sending ICE candidate");
         socket.emit("private:ice-candidate", {
           targetUserId: otherUser._id,
           candidate: e.candidate,
@@ -45,10 +69,12 @@ const PrivateCallModal = ({
     };
 
     pc.ontrack = (e) => {
+      console.log("Received remote track");
       if (e.streams && e.streams[0]) {
         remoteStreamRef.current = e.streams[0];
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = e.streams[0];
+          console.log("Remote video stream set");
         }
         setCallStatus("active");
         startCallTimer();
@@ -56,20 +82,26 @@ const PrivateCallModal = ({
     };
 
     pc.onconnectionstatechange = () => {
+      console.log("Connection state:", pc.connectionState);
       if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
         endCall();
       }
     };
 
+    // Add local tracks to peer connection
     if (localStreamRef.current) {
+      console.log("Adding local tracks to peer connection");
       localStreamRef.current.getTracks().forEach((track) => {
+        console.log("Adding track:", track.kind);
         pc.addTrack(track, localStreamRef.current);
       });
+    } else {
+      console.warn("No local stream available when creating peer connection");
     }
 
     peerConnectionRef.current = pc;
     return pc;
-  }, [socket, otherUser]);
+  }, [socket, otherUser, endCall]);
 
   const startCallTimer = () => {
     callTimerRef.current = setInterval(() => {
@@ -148,11 +180,22 @@ const PrivateCallModal = ({
   }, [initializeMedia]);
 
   const handleOffer = useCallback(async (sdp) => {
+    console.log("Received offer, creating peer connection");
+    
+    // Make sure we have local stream first
+    if (!localStreamRef.current) {
+      console.log("No local stream, initializing media first");
+      const stream = await initializeMedia();
+      if (!stream) return;
+    }
+    
     const pc = createPeerConnection();
     await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+    
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
+    console.log("Sending answer back");
     socket.emit("private:answer", {
       callerId: otherUser._id,
       sdp: answer,
@@ -167,18 +210,25 @@ const PrivateCallModal = ({
       },
     });
 
+    // Process queued ICE candidates
     iceCandidateQueueRef.current.forEach((candidate) => {
       pc.addIceCandidate(new RTCIceCandidate(candidate));
     });
     iceCandidateQueueRef.current = [];
-  }, [createPeerConnection, socket, otherUser, authUser]);
+  }, [createPeerConnection, socket, otherUser, authUser, initializeMedia]);
 
   const handleAnswer = useCallback(async (sdp) => {
+    console.log("Received answer");
     const pc = peerConnectionRef.current;
-    if (!pc) return;
+    if (!pc) {
+      console.error("No peer connection found");
+      return;
+    }
 
     await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+    console.log("Remote description set");
 
+    // Process queued ICE candidates
     iceCandidateQueueRef.current.forEach((candidate) => {
       pc.addIceCandidate(new RTCIceCandidate(candidate));
     });
@@ -186,10 +236,13 @@ const PrivateCallModal = ({
   }, []);
 
   const handleIceCandidate = useCallback((candidate) => {
+    console.log("Received ICE candidate");
     const pc = peerConnectionRef.current;
     if (!pc || !pc.remoteDescription) {
+      console.log("Queueing ICE candidate");
       iceCandidateQueueRef.current.push(candidate);
     } else {
+      console.log("Adding ICE candidate");
       pc.addIceCandidate(new RTCIceCandidate(candidate));
     }
   }, []);
@@ -218,27 +271,7 @@ const PrivateCallModal = ({
     setIsFullscreen(!isFullscreen);
   };
 
-  const endCall = useCallback(() => {
-    stopCallTimer();
-    
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
-      localStreamRef.current = null;
-    }
 
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-
-    if (socket) {
-      socket.emit("private:end-call", { targetUserId: otherUser._id });
-    }
-
-    setCallStatus("ended");
-    if (onCallEnd) onCallEnd();
-    setTimeout(() => onClose(), 500);
-  }, [socket, otherUser, onClose, onCallEnd]);
 
   useEffect(() => {
     if (!isOpen || !socket || !otherUser) return;
