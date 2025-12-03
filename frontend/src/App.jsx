@@ -129,6 +129,7 @@ const App = () => {
 
 		// 3. Friend request listener
 		socket.on("friendRequest:received", (senderProfileData) => {
+			console.log("📥 Received friendRequest:received event:", senderProfileData);
 			addPendingReceived(senderProfileData); 
 		});
 

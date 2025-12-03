@@ -259,7 +259,9 @@ io.on("connection", (socket) => {
                 
                 // Also emit to Social Hub (for pending requests)
                 const senderProfile = await User.findById(senderId).select("username nickname profilePic isVerified");
+                console.log(`📤 Emitting friendRequest:received to ${receiverId} with profile:`, senderProfile?.username);
                 partnerSocket.emit("friendRequest:received", senderProfile);
+                console.log(`✅ Friend request event emitted successfully`);
             }
 
 		} catch (error) {
