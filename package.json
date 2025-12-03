@@ -1,0 +1,40 @@
+{
+  "name": "z-app",
+  "version": "1.0.0",
+  "description": "Z-APP - Full-stack real-time chat application with video calling, friend system, and admin dashboard",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start"
+  },
+  "devDependencies": {
+    "@svgr/webpack": "^8.1.0",
+    "concurrently": "^8.2.2",
+    "vite-plugin-svgr": "^4.3.0"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "crypto": "^1.0.1",
+    "nodemailer": "^7.0.5",
+    "react-hot-toast": "^2.5.2",
+    "react-icons": "^5.5.0"
+  },
+  "keywords": [
+    "chat",
+    "real-time",
+    "socket.io",
+    "react",
+    "nodejs",
+    "mongodb",
+    "webrtc",
+    "messaging"
+  ],
+  "author": "Z-APP Team",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
