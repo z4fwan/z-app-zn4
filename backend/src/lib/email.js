@@ -7,11 +7,22 @@ const createTransporter = () => {
 	
 	if (process.env.NODE_ENV === "production") {
 		// Production: Use real email service
-		return nodemailer.createTransporter({
+		// Check if nodemailer is properly loaded
+		if (!nodemailer || typeof nodemailer.createTransport !== "function") {
+			console.warn("⚠️ Nodemailer not available, using mock transporter");
+			return {
+				sendMail: async (mailOptions) => {
+					console.log("📧 Email would be sent to:", mailOptions.to);
+					return { messageId: "mock-" + Date.now() };
+				},
+			};
+		}
+		
+		return nodemailer.createTransport({
 			service: process.env.EMAIL_SERVICE || "gmail",
 			auth: {
 				user: process.env.EMAIL_USER,
-				pass: process.env.EMAIL_PASSWORD,
+				pass: process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD,
 			},
 		});
 	} else {
