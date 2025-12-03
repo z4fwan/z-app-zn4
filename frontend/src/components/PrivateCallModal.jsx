@@ -83,8 +83,12 @@ const PrivateCallModal = ({
 
     pc.onconnectionstatechange = () => {
       console.log("Connection state:", pc.connectionState);
-      if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
-        endCall();
+      if (pc.connectionState === "failed") {
+        console.error("Connection failed");
+        toast.error("Connection failed");
+        onClose();
+      } else if (pc.connectionState === "disconnected") {
+        console.log("Connection disconnected");
       }
     };
 
@@ -101,7 +105,7 @@ const PrivateCallModal = ({
 
     peerConnectionRef.current = pc;
     return pc;
-  }, [socket, otherUser, endCall]);
+  }, [socket, otherUser, onClose]);
 
   const startCallTimer = () => {
     callTimerRef.current = setInterval(() => {
