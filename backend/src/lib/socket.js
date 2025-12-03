@@ -216,26 +216,11 @@ io.on("connection", (socket) => {
 			}
 
 			if (reverseRequest) {
-                // If a request already exists from the other person, just accept it
-                reverseRequest.status = 'accepted';
-                await reverseRequest.save();
-
-                sender.friends.push(receiverId);
-                receiver.friends.push(senderId);
-
-                await sender.save();
-                await receiver.save();
-                
-                console.log(`🤝 Friend request from ${receiverId} to ${senderId} auto-accepted`);
-                
-                // Notify both users of the accepted request
-                partnerSocket.emit("friendrequest:accepted", { userId: senderId });
-                socket.emit("friendrequest:accepted", { userId: receiverId });
-                
-                // Also emit stranger events to update UI
-				partnerSocket.emit("stranger:friendRequest", { userData: socket.strangerData, fromSocketId: socket.id });
-				socket.emit("stranger:friendRequestSent", { userData: partnerSocket.strangerData });
-
+                // If a request already exists from the other person, notify sender
+                socket.emit("stranger:addFriendError", { 
+                    error: "This user has already sent you a friend request. Check your Social Hub!" 
+                });
+                throw new Error("This user has already sent you a friend request.");
 			} else {
                 // 3. Create new friend request
                 const newRequest = new FriendRequest({
