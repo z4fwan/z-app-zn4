@@ -247,6 +247,7 @@ io.on("connection", (socket) => {
                 // 4. Emit success events
                 console.log(`👥 Friend request from ${senderId} to ${receiverId} created`);
                 
+                // Emit to stranger chat UI
                 partnerSocket.emit("stranger:friendRequest", { // Notify receiver
                     userData: socket.strangerData,
                     fromSocketId: socket.id
@@ -255,6 +256,10 @@ io.on("connection", (socket) => {
                 socket.emit("stranger:friendRequestSent", { // Confirm to sender
                     userData: partnerSocket.strangerData
                 });
+                
+                // Also emit to Social Hub (for pending requests)
+                const senderProfile = await User.findById(senderId).select("username nickname profilePic isVerified");
+                partnerSocket.emit("friendRequest:received", senderProfile);
             }
 
 		} catch (error) {
