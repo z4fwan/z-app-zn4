@@ -318,7 +318,7 @@ const PrivateCallModal = ({
 
         {/* Local Video (Picture-in-Picture) */}
         {callType === "video" && (
-          <div className="absolute bottom-20 right-4 w-24 h-32 sm:w-32 sm:h-40 md:w-40 md:h-52 bg-gray-900 rounded-lg overflow-hidden shadow-2xl border-2 border-white/20">
+          <div className="absolute bottom-24 sm:bottom-28 right-2 sm:right-4 w-28 h-36 sm:w-36 sm:h-48 md:w-44 md:h-56 bg-gray-900 rounded-lg overflow-hidden shadow-2xl border-2 border-white/20">
             <video
               ref={localVideoRef}
               autoPlay
@@ -328,7 +328,7 @@ const PrivateCallModal = ({
             />
             {isVideoOff && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                <VideoOffIcon className="w-8 h-8 text-white/50" />
+                <VideoOffIcon className="w-6 h-6 sm:w-8 sm:h-8 text-white/50" />
               </div>
             )}
           </div>
@@ -350,35 +350,35 @@ const PrivateCallModal = ({
       </div>
 
       {/* Controls */}
-      <div className="p-4 sm:p-6 bg-gradient-to-t from-black/80 to-transparent absolute bottom-0 left-0 right-0">
-        <div className="flex items-center justify-center gap-3 sm:gap-4">
+      <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-t from-black/90 to-transparent absolute bottom-0 left-0 right-0">
+        <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4">
           {/* Mute Button */}
           <button
             onClick={toggleMute}
-            className={`btn btn-circle btn-lg ${isMuted ? "btn-error" : "btn-ghost bg-white/10 text-white hover:bg-white/20"}`}
+            className={`btn btn-circle btn-md sm:btn-lg ${isMuted ? "btn-error" : "btn-ghost bg-white/10 text-white hover:bg-white/20"}`}
             title={isMuted ? "Unmute" : "Mute"}
           >
-            {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+            {isMuted ? <MicOff className="w-5 h-5 sm:w-6 sm:h-6" /> : <Mic className="w-5 h-5 sm:w-6 sm:h-6" />}
           </button>
 
           {/* Video Toggle (only for video calls) */}
           {callType === "video" && (
             <button
               onClick={toggleVideo}
-              className={`btn btn-circle btn-lg ${isVideoOff ? "btn-error" : "btn-ghost bg-white/10 text-white hover:bg-white/20"}`}
+              className={`btn btn-circle btn-md sm:btn-lg ${isVideoOff ? "btn-error" : "btn-ghost bg-white/10 text-white hover:bg-white/20"}`}
               title={isVideoOff ? "Turn on camera" : "Turn off camera"}
             >
-              {isVideoOff ? <VideoOffIcon className="w-6 h-6" /> : <Video className="w-6 h-6" />}
+              {isVideoOff ? <VideoOffIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <Video className="w-5 h-5 sm:w-6 sm:h-6" />}
             </button>
           )}
 
           {/* End Call Button */}
           <button
             onClick={endCall}
-            className="btn btn-circle btn-lg btn-error"
+            className="btn btn-circle btn-md sm:btn-lg btn-error shadow-lg"
             title="End call"
           >
-            <PhoneOff className="w-6 h-6" />
+            <PhoneOff className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
       </div>
