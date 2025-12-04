@@ -38,14 +38,21 @@ const allowedOrigins = [
 	"https://z-pp-main-com.onrender.com",
 	"http://localhost:5173",
 ];
+
+// Allow all origins for mobile app (Capacitor apps don't send origin header)
 app.use(
 	cors({
 		origin: function (origin, callback) {
+			// Allow requests with no origin (mobile apps, Postman, etc.)
 			if (!origin) return callback(null, true);
+			// Allow all origins in development
+			if (process.env.NODE_ENV !== "production") return callback(null, true);
+			// In production, check allowed origins
 			if (allowedOrigins.includes(origin)) {
 				return callback(null, true);
 			}
-			return callback(new Error("Not allowed by CORS"), false);
+			// Allow all other origins (for mobile apps)
+			return callback(null, true);
 		},
 		credentials: true,
 	})
