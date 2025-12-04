@@ -116,7 +116,7 @@ const MessageInput = () => {
   };
 
   return (
-    <div className="p-2 sm:p-3 w-full bg-base-100 border-t border-base-300">
+    <div className="p-3 sm:p-4 w-full bg-base-100 border-t border-base-300">
       {imagePreview && (
         <div className="mb-2 sm:mb-3 flex items-center gap-2 p-2 bg-base-200 rounded-lg">
           <div className="relative">
@@ -171,7 +171,7 @@ const MessageInput = () => {
         </button>
 
         {/* Text Input */}
-        <div className="flex-1 flex items-center gap-2 bg-base-200 rounded-full px-3 sm:px-4 py-2">
+        <div className="flex-1 flex items-center gap-2 bg-base-200 rounded-full px-4 sm:px-5 py-2.5 sm:py-3">
           <input
             type="text"
             className="flex-1 bg-transparent outline-none border-none text-sm sm:text-base"
