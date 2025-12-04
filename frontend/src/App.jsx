@@ -250,7 +250,7 @@ const App = () => {
 			{/* Permission Handler for Camera/Mic */}
 			{authUser && hasCompletedProfile && <PermissionHandler />}
 			
-			{/* Original Navbar - Shows on all devices */}
+			{/* Navbar */}
 			{hasCompletedProfile && window.location.pathname !== "/stranger" && <Navbar />}
 
 			<Routes>

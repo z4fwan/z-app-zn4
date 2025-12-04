@@ -56,14 +56,6 @@ const ChatHeader = ({ onStartCall }) => {
 	return (
 		<div className="p-2.5 border-b border-base-300 flex items-center justify-between bg-base-100">
 			<div className="flex items-center gap-3 min-w-0 flex-1">
-				{/* Back button - mobile only */}
-				<button
-					className="md:hidden btn btn-ghost btn-circle btn-sm"
-					onClick={() => setSelectedUser(null)}
-				>
-					<ArrowLeft className="w-5 h-5" />
-				</button>
-
 				{/* Avatar */}
 				<button
 					onClick={handleViewProfile}
