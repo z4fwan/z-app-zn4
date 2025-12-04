@@ -4,8 +4,6 @@ import { Loader } from "lucide-react";
 import { Toaster, toast } from "react-hot-toast";
 
 import Navbar from "./components/Navbar";
-import MobileBottomNav from "./components/MobileBottomNav";
-import MobileHeader from "./components/MobileHeader";
 import DeveloperLogo from "./components/DeveloperSign";
 import OfflineIndicator from "./components/OfflineIndicator";
 import PermissionHandler from "./components/PermissionHandler";
@@ -245,21 +243,15 @@ const App = () => {
 	const hasCompletedProfile = authUser?.hasCompletedProfile;
 
 	return (
-		<div data-theme={theme} className="pb-16 md:pb-0 pt-14 md:pt-16">
+		<div data-theme={theme} className="pt-14 md:pt-16">
 			{/* Offline Indicator */}
 			<OfflineIndicator />
 			
 			{/* Permission Handler for Camera/Mic */}
 			{authUser && hasCompletedProfile && <PermissionHandler />}
 			
-			{/* Mobile Header - Only on mobile */}
-			<MobileHeader />
-			
-			{/* Desktop Navbar - Hidden on mobile */}
+			{/* Original Navbar - Shows on all devices */}
 			{hasCompletedProfile && window.location.pathname !== "/stranger" && <Navbar />}
-			
-			{/* Mobile Bottom Navigation */}
-			<MobileBottomNav />
 
 			<Routes>
 				{/* --- Auth Routes --- */}
