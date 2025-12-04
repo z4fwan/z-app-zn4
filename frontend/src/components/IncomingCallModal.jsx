@@ -5,6 +5,7 @@ const IncomingCallModal = ({ isOpen, caller, callType, onAccept, onReject }) => 
   const [ringingTime, setRingingTime] = useState(0);
   const audioContextRef = useRef(null);
   const ringtoneIntervalRef = useRef(null);
+  const audioRef = useRef(null);
 
   // Play ringtone using Web Audio API
   const playRingtone = () => {
@@ -14,6 +15,11 @@ const IncomingCallModal = ({ isOpen, caller, callType, onAccept, onReject }) => 
       }
       
       const context = audioContextRef.current;
+      
+      // Resume context if suspended (browser autoplay policy)
+      if (context.state === 'suspended') {
+        context.resume().catch(err => console.log('AudioContext resume failed:', err));
+      }
       const oscillator = context.createOscillator();
       const gainNode = context.createGain();
       
@@ -59,13 +65,25 @@ const IncomingCallModal = ({ isOpen, caller, callType, onAccept, onReject }) => 
         clearInterval(ringtoneIntervalRef.current);
         ringtoneIntervalRef.current = null;
       }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
       return;
+    }
+
+    // Vibrate if supported
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
     }
 
     // Play ringtone immediately and then every 2 seconds
     playRingtone();
     ringtoneIntervalRef.current = setInterval(() => {
       playRingtone();
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
     }, 2000);
 
     const timer = setInterval(() => {
