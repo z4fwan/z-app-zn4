@@ -23,14 +23,13 @@ const Navbar = () => {
 		<header className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40 backdrop-blur-lg bg-base-100/80">
 			<div className="max-w-7xl mx-auto px-4 h-16">
 				<div className="flex items-center justify-between h-full">
-					{/* Logo - Always show text */}
+					{/* Logo - Only icon */}
 					<Link to="/" className="flex items-center gap-2.5">
 						<img
 							src="/zn4.png"
 							alt="Z-APP"
 							className="h-10 w-auto"
 						/>
-						<span className="text-xl font-bold">Z-APP</span>
 					</Link>
 
 					{/* Navigation Icons */}
