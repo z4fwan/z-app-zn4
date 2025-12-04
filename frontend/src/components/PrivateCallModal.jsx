@@ -29,22 +29,37 @@ const PrivateCallModal = ({
   const hasInitializedRef = useRef(false);
 
   const endCall = useCallback(async () => {
+    console.log("🔚 Ending call...");
     stopCallTimer();
     
     // Save call duration before cleanup
     const finalDuration = callDuration;
     
+    // Stop all local media tracks
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      console.log("🛑 Stopping local media tracks");
+      localStreamRef.current.getTracks().forEach((track) => {
+        track.stop();
+        console.log(`Stopped ${track.kind} track`);
+      });
       localStreamRef.current = null;
     }
 
+    // Close peer connection
     if (peerConnectionRef.current) {
+      console.log("🔌 Closing peer connection");
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
 
+    // Clear remote stream
+    if (remoteStreamRef.current) {
+      remoteStreamRef.current = null;
+    }
+
+    // Notify other user
     if (socket && otherUser) {
+      console.log("📤 Notifying other user of call end");
       socket.emit("private:end-call", { targetUserId: otherUser._id });
     }
 
@@ -67,7 +82,10 @@ const PrivateCallModal = ({
     if (onCallEnd && typeof onCallEnd === 'function') {
       onCallEnd(finalDuration);
     }
-    setTimeout(() => onClose(), 500);
+    setTimeout(() => {
+      console.log("✅ Call cleanup complete, closing modal");
+      onClose();
+    }, 500);
   }, [socket, otherUser, onClose, onCallEnd, callDuration, callType]);
 
   const createPeerConnection = useCallback(() => {
@@ -100,16 +118,27 @@ const PrivateCallModal = ({
         // Set remote stream to appropriate element
         if (callType === "video" && remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = e.streams[0];
-          remoteVideoRef.current.play().catch(err => {
+          // Ensure autoplay works
+          remoteVideoRef.current.play().then(() => {
+            console.log("✅ Remote video stream playing");
+          }).catch(err => {
             console.error("❌ Error playing remote video:", err);
+            // Try to play again after user interaction
+            setTimeout(() => {
+              remoteVideoRef.current?.play().catch(e => console.error("Retry failed:", e));
+            }, 1000);
           });
-          console.log("✅ Remote video stream set and playing");
         } else if (callType === "audio" && remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = e.streams[0];
-          remoteAudioRef.current.play().catch(err => {
+          remoteAudioRef.current.play().then(() => {
+            console.log("✅ Remote audio stream playing");
+          }).catch(err => {
             console.error("❌ Error playing remote audio:", err);
+            // Try to play again
+            setTimeout(() => {
+              remoteAudioRef.current?.play().catch(e => console.error("Retry failed:", e));
+            }, 1000);
           });
-          console.log("✅ Remote audio stream set and playing");
         }
         
         console.log("✅ Setting call status to ACTIVE and starting timer");
@@ -259,6 +288,8 @@ const PrivateCallModal = ({
       const stream = await initializeMedia();
       if (!stream) {
         console.error("❌ Failed to initialize media");
+        toast.error("Failed to access camera/microphone");
+        endCall();
         return;
       }
     }
@@ -266,30 +297,38 @@ const PrivateCallModal = ({
     console.log("✅ Local stream ready, creating peer connection");
     const pc = createPeerConnection();
     
-    console.log("📝 Setting remote description (offer)");
-    await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-    console.log("✅ Remote description set");
-    
-    console.log("📝 Creating answer");
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    console.log("✅ Local description (answer) set");
+    try {
+      console.log("📝 Setting remote description (offer)");
+      await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+      console.log("✅ Remote description set");
+      
+      console.log("📝 Creating answer");
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      console.log("✅ Local description (answer) set");
 
-    console.log("📤 Sending answer back to caller");
-    socket.emit("private:answer", {
-      callerId: otherUser._id,
-      sdp: answer,
-    });
+      console.log("📤 Sending answer back to caller");
+      socket.emit("private:answer", {
+        callerId: otherUser._id,
+        sdp: answer,
+      });
 
-    // Note: call-accepted is now emitted from HomePage when user clicks accept
-    console.log("✅ Answer sent, waiting for ICE candidates and tracks");
+      console.log("✅ Answer sent, waiting for ICE candidates and tracks");
 
-    // Process queued ICE candidates
-    iceCandidateQueueRef.current.forEach((candidate) => {
-      pc.addIceCandidate(new RTCIceCandidate(candidate));
-    });
-    iceCandidateQueueRef.current = [];
-  }, [createPeerConnection, socket, otherUser, authUser, initializeMedia]);
+      // Process queued ICE candidates
+      console.log(`🧊 Processing ${iceCandidateQueueRef.current.length} queued ICE candidates`);
+      iceCandidateQueueRef.current.forEach((candidate) => {
+        pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(err => {
+          console.error("Error adding ICE candidate:", err);
+        });
+      });
+      iceCandidateQueueRef.current = [];
+    } catch (error) {
+      console.error("❌ Error handling offer:", error);
+      toast.error("Failed to establish connection");
+      endCall();
+    }
+  }, [createPeerConnection, socket, otherUser, initializeMedia, endCall]);
 
   const handleAnswer = useCallback(async (sdp) => {
     console.log("📥 Received answer from receiver");
@@ -299,29 +338,39 @@ const PrivateCallModal = ({
       return;
     }
 
-    console.log("📝 Setting remote description (answer)");
-    await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-    console.log("✅ Remote description set successfully");
+    try {
+      console.log("📝 Setting remote description (answer)");
+      await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+      console.log("✅ Remote description set successfully");
 
-    // Process queued ICE candidates
-    console.log(`🧊 Processing ${iceCandidateQueueRef.current.length} queued ICE candidates`);
-    iceCandidateQueueRef.current.forEach((candidate) => {
-      pc.addIceCandidate(new RTCIceCandidate(candidate));
-    });
-    iceCandidateQueueRef.current = [];
-    
-    console.log("✅ Answer processed, waiting for tracks...");
-  }, []);
+      // Process queued ICE candidates
+      console.log(`🧊 Processing ${iceCandidateQueueRef.current.length} queued ICE candidates`);
+      iceCandidateQueueRef.current.forEach((candidate) => {
+        pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(err => {
+          console.error("Error adding ICE candidate:", err);
+        });
+      });
+      iceCandidateQueueRef.current = [];
+      
+      console.log("✅ Answer processed, waiting for tracks...");
+    } catch (error) {
+      console.error("❌ Error handling answer:", error);
+      toast.error("Failed to establish connection");
+      endCall();
+    }
+  }, [endCall]);
 
   const handleIceCandidate = useCallback((candidate) => {
-    console.log("Received ICE candidate");
+    console.log("🧊 Received ICE candidate");
     const pc = peerConnectionRef.current;
     if (!pc || !pc.remoteDescription) {
-      console.log("Queueing ICE candidate");
+      console.log("⏳ Queueing ICE candidate (no remote description yet)");
       iceCandidateQueueRef.current.push(candidate);
     } else {
-      console.log("Adding ICE candidate");
-      pc.addIceCandidate(new RTCIceCandidate(candidate));
+      console.log("✅ Adding ICE candidate immediately");
+      pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(err => {
+        console.error("❌ Error adding ICE candidate:", err);
+      });
     }
   }, []);
 
@@ -403,20 +452,15 @@ const PrivateCallModal = ({
         return;
       }
       
+      // Verify this rejection is for our call
+      if (data.rejectorId && data.rejectorId !== otherUser?._id) {
+        console.log("⚠️ Rejection from different user, ignoring");
+        return;
+      }
+      
       console.log("❌ Call rejected by other user");
       toast.error("Call declined");
-      // Close modal immediately
-      stopCallTimer();
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => track.stop());
-        localStreamRef.current = null;
-      }
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.close();
-        peerConnectionRef.current = null;
-      }
-      setCallStatus("ended");
-      onClose();
+      endCall(); // Use endCall to ensure proper cleanup
     };
 
     socket.on("private:offer", handleOfferEvent);

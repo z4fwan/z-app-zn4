@@ -107,7 +107,10 @@ const HomePage = () => {
   const handleRejectCall = () => {
     if (incomingCall && socket) {
       console.log("🚫 Rejecting call from:", incomingCall.callerInfo.nickname);
-      socket.emit("private:reject-call", { callerId: incomingCall.callerInfo._id });
+      socket.emit("private:reject-call", { 
+        callerId: incomingCall.callerInfo._id,
+        reason: "declined"
+      });
     }
     setIncomingCall(null);
   };

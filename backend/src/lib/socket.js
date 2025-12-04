@@ -463,14 +463,14 @@ io.on("connection", (socket) => {
 	// Only private:reject-call should be used by clients
 
 	socket.on("private:reject-call", (payload) => {
-		const { callerId } = payload;
+		const { callerId, reason } = payload;
 		const rejectorId = socket.userId;
-		console.log(`❌ Call rejected by ${rejectorId} for caller ${callerId}`);
+		console.log(`❌ Call rejected by ${rejectorId} for caller ${callerId}. Reason: ${reason || 'declined'}`);
 		
 		if (rejectorId) {
 			emitToUser(callerId, "private:call-rejected", {
 				rejectorId,
-				reason: "Call declined",
+				reason: reason || "declined",
 			});
 		} else {
 			console.error("Cannot reject call: rejectorId not found on socket.");
