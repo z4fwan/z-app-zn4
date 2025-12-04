@@ -17,7 +17,21 @@ export const axiosInstance = axios.create({
   withCredentials: true, // Send cookies with requests
 });
 
-// Optional: Add request/response interceptors if needed
+// Add request interceptor to include token in all requests
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for error handling
 axiosInstance.interceptors.response.use(
   (response) => response, // Simply return successful responses
   (error) => {
@@ -28,6 +42,14 @@ axiosInstance.interceptors.response.use(
         status: error.response?.status, // Response status
         response: error.response?.data // Response data if available
     });
+    
+    // Handle 401 Unauthorized - token expired or invalid
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("authUser");
+      window.location.href = "/login";
+    }
+    
     // Reject the promise so downstream `.catch()` blocks can handle it
     return Promise.reject(error);
   }
