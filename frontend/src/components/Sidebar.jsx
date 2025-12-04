@@ -196,72 +196,188 @@ const Sidebar = () => {
         </div>
       </aside>
 
-      {/* 2. Floating Search Overlay (No changes needed here for scrolling) */}
+      {/* Enhanced Search Overlay */}
       {searchOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center z-50 pt-16 px-4 animate-fadeIn">
-          <div className="bg-base-100 p-5 rounded-xl shadow-2xl w-full max-w-lg border-2 border-primary">
-            {/* Search Input Bar */}
-            <div className="flex items-center gap-3 border-b pb-3 border-base-300">
-              <Search className="w-6 h-6 text-primary flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Search your friends by name or username..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="flex-1 p-2 outline-none bg-transparent text-lg"
-                autoFocus
-              />
-              <button
-                onClick={() => {
-                  setSearchOpen(false);
-                  setQuery(""); 
-                }}
-                className="p-2 hover:bg-base-200 rounded-full transition-colors flex-shrink-0"
-                aria-label="Close search"
-              >
-                <X className="w-6 h-6 text-gray-500" />
-              </button>
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn"
+          onClick={() => {
+            setSearchOpen(false);
+            setQuery("");
+          }}
+        >
+          <div 
+            className="bg-gradient-to-br from-base-100 to-base-200 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col border border-primary/20 animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-4 sm:p-6 border-b border-base-300">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                  <Search className="w-6 h-6 text-primary" />
+                  Search Friends
+                </h2>
+                <button
+                  onClick={() => {
+                    setSearchOpen(false);
+                    setQuery("");
+                  }}
+                  className="btn btn-ghost btn-circle btn-sm hover:bg-error/10 hover:text-error"
+                  aria-label="Close search"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Search Input */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="w-5 h-5 text-base-content/40" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search by name or username..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 sm:py-4 bg-base-200 rounded-xl outline-none border-2 border-transparent focus:border-primary transition-all text-base sm:text-lg"
+                  autoFocus
+                />
+                {query && (
+                  <button
+                    onClick={() => setQuery("")}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-base-content/40 hover:text-base-content"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Results Count */}
+              {query && (
+                <p className="mt-3 text-sm text-base-content/60">
+                  {filteredUsers.length} {filteredUsers.length === 1 ? 'friend' : 'friends'} found
+                </p>
+              )}
             </div>
 
             {/* Search Results */}
-            {query && (
-              <div className="mt-4 max-h-80 overflow-y-auto">
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => (
-                    <div
-                      key={user._id}
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setSearchOpen(false);
-                        setQuery("");
-                      }}
-                      className="p-3 my-1 rounded flex items-center gap-3 hover:bg-base-200 active:bg-base-300 cursor-pointer transition-colors text-base"
-                    >
-                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-                        <img 
-                          src={user.profilePic || "/avatar.png"} 
-                          alt={user.nickname || user.username} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <span className="font-semibold">
-                        {user.nickname || user.username}
-                      </span>
-                      <span className="text-sm text-zinc-500">
-                        {user.username && `(@${user.username})`}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-sm text-zinc-500 py-6">
-                    No friends found matching "{query}"
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              {!query ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                    <Search className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-semibold mb-2">Search Your Friends</h3>
+                  <p className="text-sm sm:text-base text-base-content/60 max-w-sm">
+                    Type a name or username to find your friends quickly
                   </p>
-                )}
-              </div>
-            )}
+                </div>
+              ) : filteredUsers.length > 0 ? (
+                <div className="space-y-2">
+                  {filteredUsers.map((user) => {
+                    const isOnline = onlineUsers.includes(user._id);
+                    const unread = unreadCounts[user._id] || 0;
+                    return (
+                      <button
+                        key={user._id}
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setSearchOpen(false);
+                          setQuery("");
+                        }}
+                        className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl hover:bg-base-200 active:bg-base-300 transition-all group"
+                      >
+                        {/* Avatar */}
+                        <div className="relative flex-shrink-0">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden ring-2 ring-base-300 group-hover:ring-primary transition-all">
+                            <img
+                              src={user.profilePic || "/avatar.png"}
+                              alt={user.nickname || user.username}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          {isOnline && (
+                            <span className="absolute right-0 bottom-0 w-3 h-3 sm:w-4 sm:h-4 rounded-full ring-2 ring-base-100 bg-success animate-pulse" />
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0 text-left">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-base sm:text-lg truncate">
+                              {user.nickname || user.username}
+                            </span>
+                            {user.isVerified && <VerifiedBadge size="sm" />}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-base-content/60">
+                            <span className="truncate">@{user.username}</span>
+                            {isOnline && (
+                              <span className="flex items-center gap-1 text-success">
+                                <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                                Online
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Unread Badge */}
+                        {unread > 0 && (
+                          <div className="flex-shrink-0">
+                            <span className="badge badge-error badge-sm sm:badge-md">
+                              {unread > 9 ? "9+" : unread}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Arrow Icon */}
+                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-base-300 flex items-center justify-center mb-4">
+                    <svg className="w-10 h-10 sm:w-12 sm:h-12 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-semibold mb-2">No Results Found</h3>
+                  <p className="text-sm sm:text-base text-base-content/60 max-w-sm">
+                    No friends found matching "<span className="font-semibold">{query}</span>"
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { 
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to { 
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+        .animate-scaleIn {
+          animation: scaleIn 0.3s ease-out;
+        }
+      `}</style>
     </>
   );
 };
