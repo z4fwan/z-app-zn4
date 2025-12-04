@@ -83,6 +83,14 @@ export const useChatStore = create((set, get) => ({
             set({ messages: updatedMessages });
         };
 
+        const messagesDeliveredHandler = ({ messageIds, deliveredAt }) => {
+            const { messages } = get();
+            const updatedMessages = messages.map(msg => 
+                messageIds.includes(msg._id) ? { ...msg, status: 'delivered', deliveredAt } : msg
+            );
+            set({ messages: updatedMessages });
+        };
+
         const messagesReadHandler = ({ readBy }) => {
             const { messages } = get();
             const updatedMessages = messages.map(msg => 
@@ -95,10 +103,12 @@ export const useChatStore = create((set, get) => ({
 
         socket.off("newMessage", messageHandler);
         socket.off("messageDelivered", messageDeliveredHandler);
+        socket.off("messagesDelivered", messagesDeliveredHandler);
         socket.off("messagesRead", messagesReadHandler);
         
         socket.on("newMessage", messageHandler);
         socket.on("messageDelivered", messageDeliveredHandler);
+        socket.on("messagesDelivered", messagesDeliveredHandler);
         socket.on("messagesRead", messagesReadHandler);
         
         console.log("Subscribed to message events");

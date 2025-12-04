@@ -5,6 +5,7 @@ import cloudinary from "./cloudinary.js";
 import Report from "../models/report.model.js";
 import User from "../models/user.model.js"; // <-- ADDED
 import FriendRequest from "../models/friendRequest.model.js"; // <-- ADDED
+import Message from "../models/message.model.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -39,6 +40,48 @@ export const emitToUser = (userId, event, data) => {
 		io.to(socketId).emit(event, data);
 	} else {
 		console.log(`Could not find socket for user ${userId} to emit ['${event}']`);
+	}
+};
+
+// Mark pending messages as delivered when user comes online
+const markPendingMessagesAsDelivered = async (userId) => {
+	try {
+		// Find all messages sent to this user that are still in 'sent' status
+		const pendingMessages = await Message.find({
+			receiverId: userId,
+			status: 'sent'
+		});
+
+		if (pendingMessages.length > 0) {
+			const deliveredAt = new Date();
+			
+			// Update all pending messages to delivered
+			await Message.updateMany(
+				{ receiverId: userId, status: 'sent' },
+				{ 
+					$set: { 
+						status: 'delivered',
+						deliveredAt: deliveredAt
+					}
+				}
+			);
+
+			console.log(`✓✓ Marked ${pendingMessages.length} messages as delivered for user ${userId}`);
+
+			// Notify each sender that their messages were delivered
+			const senderIds = [...new Set(pendingMessages.map(msg => msg.senderId.toString()))];
+			
+			for (const senderId of senderIds) {
+				const senderMessages = pendingMessages.filter(msg => msg.senderId.toString() === senderId);
+				emitToUser(senderId, "messagesDelivered", {
+					receiverId: userId,
+					messageIds: senderMessages.map(msg => msg._id),
+					deliveredAt: deliveredAt
+				});
+			}
+		}
+	} catch (error) {
+		console.error("Error marking messages as delivered:", error);
 	}
 };
 // === END PRIVATE CHAT LOGIC ===
@@ -125,6 +168,9 @@ io.on("connection", (socket) => {
 		userSocketMap[initialUserId] = socket.id;
 		socket.userId = initialUserId;
 		io.emit("getOnlineUsers", Object.keys(userSocketMap));
+		
+		// Mark pending messages as delivered when user comes online
+		markPendingMessagesAsDelivered(initialUserId);
 	}
 
 	// === PRIVATE CHAT (FRIENDS) EVENTS ===
