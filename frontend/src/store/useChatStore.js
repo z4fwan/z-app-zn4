@@ -26,6 +26,8 @@ export const useChatStore = create((set, get) => ({
             const res = await axiosInstance.get(`/messages/${userId}`);
             set({ messages: res.data });
             get().resetUnread(userId); // reset unread when opening chat
+            // Mark messages as read when opening chat
+            get().markMessagesAsRead(userId);
         } catch (error) {
             toast.error(error.response?.data?.message || "Failed to fetch messages");
             set({ messages: [] }); // Clear messages on error
@@ -92,13 +94,15 @@ export const useChatStore = create((set, get) => ({
         };
 
         const messagesReadHandler = ({ readBy }) => {
-            const { messages } = get();
+            const { messages, selectedUser } = get();
+            // Update messages where I am the sender and the other person (readBy) is the receiver
             const updatedMessages = messages.map(msg => 
                 msg.receiverId === readBy && msg.status !== 'read' 
                     ? { ...msg, status: 'read', readAt: new Date() } 
                     : msg
             );
             set({ messages: updatedMessages });
+            console.log(`Messages read by ${readBy}`);
         };
 
         socket.off("newMessage", messageHandler);
@@ -116,7 +120,8 @@ export const useChatStore = create((set, get) => ({
 
     markMessagesAsRead: async (userId) => {
         try {
-            await axiosInstance.put(`/messages/read/${userId}`);
+            const response = await axiosInstance.put(`/messages/read/${userId}`);
+            console.log(`Marked ${response.data.count} messages as read from user ${userId}`);
         } catch (error) {
             console.error("Failed to mark messages as read:", error);
         }
